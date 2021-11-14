@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from typing import Any, Optional
 from postgres_to_es.settings_parser import app_data
+from datetime import datetime
 
 
 json_file_name: str = app_data.STATE_FILE_NAME
@@ -27,10 +28,14 @@ class JsonFileStorage(BaseStorage):
 
     def save_state(self, state: dict = {}) -> None:
         """Сохранить состояние в постоянное хранилище"""
-        print(f"{self.file_path}{json_file_name}")
+        file_state = self.retrieve_state()
         with open(f"{self.file_path}{json_file_name}", 'w', encoding='utf-8') \
                 as storage:
-            json.dump(state, storage, ensure_ascii=False, indent=4)
+            save_state = {
+                **file_state,
+                **state
+            }
+            json.dump(save_state, storage, ensure_ascii=False, indent=4)
 
     def retrieve_state(self) -> dict:
         """Загрузить состояние локально из постоянного хранилища"""
@@ -58,10 +63,16 @@ class State:
 
     def get_state(self, key: str) -> Any:
         """Получить состояние по определённому ключу"""
-        return self.storage.retrieve_state().get(key, None)
+        updated_at = self.storage.retrieve_state().get(key, None)
+        if updated_at:
+            return updated_at
+        else:
+            return datetime.min
 
 
 my_state = State(storage=JsonFileStorage(file_path=file_path))
-# my_state.set_state(key="hello", value="world")
-# print(my_state.get_state(key="hello"))
-# print(my_state.get_state(key="bye"))
+# my_state.set_state(key="person_updated_at", value="3")
+# my_state.set_state(key="film_work_updated_at", value="2")
+# my_state.set_state(key="genre_updated_at", value="1")
+# print(my_state.get_state(key="person_updated_at"))
+# print(my_state.get_state(key="film_work_updated_at"))

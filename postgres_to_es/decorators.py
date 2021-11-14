@@ -5,7 +5,7 @@ import logging
 
 def backoff(
         exceptions: list, start_sleep_time=0.1, factor=2,
-        border_sleep_time=10, max_tries=10
+        border_sleep_time=10, max_tries=100
 ):
     """
     Функция для повторного выполнения функции через некоторое время,
@@ -22,18 +22,20 @@ def backoff(
     :param max_tries: граничное кол-во попыток запроса к БД
     :return: результат выполнения функции
     """
-
     def func_wrapper(func):
         @wraps(func)
         def inner(*args, **kwargs):
             time_out = start_sleep_time
             for try_number in range(max_tries):
+                logging.info(
+                    f" Try number: {try_number + 1} - delay {time_out}"
+                )
                 try:
                     connection = func(*args, **kwargs)
                     return connection
                 except exceptions as e:
                     logging.exception(
-                        f"Try connection again after "
+                        f"Try connection again after\n"
                         f"time_out in {time_out} seconds\n"
                         f"Error message: {e}"
                     )

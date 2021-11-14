@@ -1,12 +1,10 @@
 from pydantic import BaseModel
 from datetime import datetime
-from uuid import UUID
-from typing import Union
 
 
 class IdMixin(BaseModel):
     """Mixin for id field"""
-    id: Union[str, UUID]
+    id: str
 
 
 class UpdatedMixin(BaseModel):

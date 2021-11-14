@@ -26,10 +26,15 @@ class ElasticsearchService:
                 ignore=ignore_http_response
             )
 
-    def migrate_data(self, data) -> None:
-        print(data)
+    def migrate_data(self, actions) -> None:
         lines, status = bulk(
-            client=self.client, actions=data, index=self.index_name
+            client=self.client,
+            actions=[
+                {
+                    "_index": self.index_name,
+                    "_id": action.get("id"), **action
+                }
+                for action in actions
+            ]
         )
-        print(lines, status)
         logger.info(f"Migrate data: {lines}")

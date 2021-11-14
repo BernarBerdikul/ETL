@@ -1,80 +1,52 @@
-import psycopg2
-import os
-from psycopg2.extensions import connection as _connection
-from psycopg2.extras import DictCursor
-from dotenv import load_dotenv
+import logging
+from time import sleep
 from datetime import datetime, timedelta
+from typing import List
+from postgres_to_es.services import (
+    PostgresService,
+    PostgresCursor,
+    ElasticsearchService,
+    my_state
+)
+from postgres_to_es.settings_parser import app_data
 
-load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
-def etl_data_migration(pg_connection: _connection):
-    postgres_cursor = pg_connection.cursor()
-    now = datetime(2021, 6, 17).isoformat()
-    sql_query: str = f"""
-        SELECT id, updated_at
-        FROM content.person
-        WHERE updated_at > '{now}'
-        ORDER BY updated_at
-        LIMIT 100;
-    """
-    postgres_cursor.execute(sql_query)
-    persons = postgres_cursor.fetchall()
-    print(persons)
-    print(len(persons))
-    ids: tuple = ("0031feab-8f53-412a-8f53-47098a60ac73", "009a900e-b9dc-4cd4-87a7-ca53d1b7dd24")
-    sql_query2 = f"""
-    SELECT fw.id, fw.updated_at
-    FROM content.film_work fw
-    LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id
-    WHERE pfw.person_id IN {ids}
-    ORDER BY fw.updated_at
-    LIMIT 100; 
-    """
-    postgres_cursor.execute(sql_query2)
-    film_works = postgres_cursor.fetchall()
+def etl_data_migration(pg_cursor):
+    cursor = PostgresCursor(
+        cursor=pg_cursor, itersize=app_data.LIMIT
+    )
+
+    update_at = my_state.get_state(app_data.STATE_FIELD)
+    person_ids: List[str] = cursor.get_persons_ids(update_at=update_at)
+
+    print(person_ids[:10])
+    film_work_ids:  List[str] = cursor.get_film_work_ids(person_ids=person_ids)
+    print(film_work_ids[:10])
+
+    film_works, state_time = cursor.get_film_work_instances(film_work_ids=film_work_ids)
+
     print(film_works)
-    print(len(film_works))
-    # person_ids: tuple = ('01cd80e2-5db8-4914-9a80-74f15a3a1a24',)
-    # sql_query3 = f"""
-    # SELECT
-    #     fw.id as fw_id,
-    #     fw.title,
-    #     fw.description,
-    #     fw.rating,
-    #     fw.type,
-    #     fw.created_at,
-    #     fw.updated_at,
-    #     pfw.role,
-    #     p.id,
-    #     p.full_name,
-    #     g.name
-    # FROM content.film_work fw
-    # LEFT JOIN content.person_film_work pfw ON pfw.film_work_id = fw.id
-    # LEFT JOIN content.person p ON p.id = pfw.person_id
-    # LEFT JOIN content.genre_film_work gfw ON gfw.film_work_id = fw.id
-    # LEFT JOIN content.genre g ON g.id = gfw.genre_id
-    # WHERE fw.id IN {person_ids};
-    # """
-    # print(postgres_cursor.execute(sql_query3))
+
+    my_state.set_state(
+        key=app_data.STATE_FIELD,
+        value=state_time
+    )
 
 
 if __name__ == "__main__":
-    dsl = {
-        "dbname": os.getenv("DB_NAME"),
-        "user": os.getenv("DB_USER"),
-        "password": os.getenv("DB_PASSWORD"),
-        "host": os.getenv("DB_HOST", "127.0.0.1"),
-        "port": os.getenv("DB_PORT", 5432),
-        "options": "-c search_path=content",
-    }
-    pg_conn = psycopg2.connect(
-        **dsl, cursor_factory=DictCursor
-    )
-    try:
-        with pg_conn:
-            etl_data_migration(pg_conn)
-    except Exception as e:
-        raise e
-    finally:
-        pg_conn.close()
+    es_conn = ElasticsearchService()
+    while True:
+        logger.info("Start migration")
+        try:
+            with PostgresService().conn_status as postgres_conn:
+                etl_data_migration(pg_cursor=postgres_conn.cursor())
+        except Exception as e:
+            logger.error(e)
+        finally:
+            postgres_conn.close()
+        logger.info(f"Sleep for {app_data.FETCH_DELAY} seconds")
+        print(app_data.FETCH_DELAY)
+        sleep(app_data.FETCH_DELAY)

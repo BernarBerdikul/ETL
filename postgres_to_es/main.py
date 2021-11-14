@@ -35,36 +35,32 @@ def etl_data_migration(pg_cursor, es_conn):
         cursor=pg_cursor,
         stater=my_state
     )
+    person_film_work_ids = []
+    genre_film_work_ids = []
 
+    """ get film works ids by persons """
     person_ids: List[str] = cursor.get_person_ids()
     if person_ids:
         person_film_work_ids:  List[str] = (
             cursor.get_person_film_work_ids(person_ids=person_ids)
         )
-        load_data(
-            cursor=cursor,
-            es_conn=es_conn,
-            film_work_ids=person_film_work_ids
+
+    """ get film works ids by genres """
+    genre_ids: List[str] = cursor.get_genre_ids()
+    if genre_ids:
+        genre_film_work_ids: List[str] = (
+            cursor.get_genre_film_work_ids(genre_ids=genre_ids)
         )
 
-    # genre_ids: List[str] = cursor.get_genre_ids()
-    # print(genre_ids[:5])
-    # if genre_ids:
-    #     genre_film_work_ids: List[str] = (
-    #         cursor.get_genre_film_work_ids(genre_ids=genre_ids)
-    #     )
-    #     print(genre_film_work_ids[:5])
-    #     load_data(
-    #         cursor=cursor,
-    #         es_conn=es_conn,
-    #         film_work_ids=genre_film_work_ids
-    #     )
-
+    """ get film works ids """
     film_work_ids = cursor.get_film_work_ids()
+    all_film_work_ids = set(
+        film_work_ids + genre_film_work_ids + person_film_work_ids
+    )
     load_data(
         cursor=cursor,
         es_conn=es_conn,
-        film_work_ids=film_work_ids
+        film_work_ids=all_film_work_ids
     )
 
 

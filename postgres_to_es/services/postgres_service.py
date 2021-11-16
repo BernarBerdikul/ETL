@@ -74,6 +74,7 @@ class PostgresCursor:
         person_film_works = self.execute(
             query=query_film_works_by_persons(person_ids=person_ids)
         )
+        print("person", len(person_film_works))
         return [
             PersonFilmWorkSchema(**person_film_work).id
             for person_film_work in person_film_works
@@ -105,6 +106,7 @@ class PostgresCursor:
         genre_film_works = self.execute(
             query=query_film_works_by_genres(genre_ids=genre_ids)
         )
+        print("genre", len(genre_film_works))
         return [
             GenreFilmWorkSchema(**genre_film_work).id
             for genre_film_work in genre_film_works
@@ -121,6 +123,7 @@ class PostgresCursor:
         film_work_ids: set = {
             film_work.get("fw_id") for film_work in film_works
         }
+        print("film_works", len(film_works))
 
         transformed_data: list = []
         """ combine duplicates rows """

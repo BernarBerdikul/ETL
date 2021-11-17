@@ -1,12 +1,14 @@
 from typing import Optional
-from pydantic import BaseSettings
+
 from dotenv import load_dotenv
+from pydantic import BaseSettings
 
 load_dotenv()
 
 
 class PostgresSettings(BaseSettings):
-    """ Schema to get .env variables for Postgres """
+    """Schema to get .env variables for Postgres"""
+
     DB_NAME: str
     DB_USER: str
     DB_PASSWORD: str
@@ -19,7 +21,8 @@ class PostgresSettings(BaseSettings):
 
 
 class ElasticSearchSettings(BaseSettings):
-    """ Schema to get .env variables for ElasticSearch """
+    """Schema to get .env variables for ElasticSearch"""
+
     ETL_HOST: str = "localhost"
     ETL_PORT: Optional[int] = 9200
     ETL_FILE_PATH: str
@@ -29,14 +32,15 @@ class ElasticSearchSettings(BaseSettings):
 
 
 class ApplicationSettings(BaseSettings):
-    """ Schema to get .env variables which will be use in Application """
+    """Schema to get .env variables which will be use in Application"""
+
     LIMIT: Optional[int] = 100
     FETCH_DELAY: float
     STATE_FIELD: str
     STATE_FILE_NAME: str
 
     class Config:
-        env_file = '.env'
+        env_file = ".env"
 
 
 pg_data = PostgresSettings()

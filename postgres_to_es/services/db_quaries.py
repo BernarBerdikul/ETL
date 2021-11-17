@@ -1,8 +1,10 @@
+from typing import Union
+
 from postgres_to_es.settings_parser import app_data
 
 
-def query_part_for_where(data: list) -> str:
-    """ Query constructor for WHERE operator """
+def query_part_for_where(data: Union[list, tuple]) -> str:
+    """Query constructor for WHERE operator"""
     if len(data) > 1:
         return f"IN {tuple(data)}"
     else:
@@ -66,9 +68,9 @@ def query_film_works_by_persons(person_ids: list) -> str:
     """
 
 
-def query_film_works_by_ids(film_work_ids: list) -> str:
-    """ Return film works by film work ids
-        where updated persons were played """
+def query_film_works_by_ids(film_work_ids: tuple) -> str:
+    """Return film works by film work ids
+    where updated persons were played"""
     query_part = query_part_for_where(data=film_work_ids)
     return f"""
         SELECT

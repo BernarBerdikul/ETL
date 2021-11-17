@@ -1,130 +1,121 @@
-from typing import Optional, List, Dict
+import logging
+from typing import Dict, List, Optional
+
 import psycopg2
 from psycopg2 import OperationalError
-from psycopg2.extras import DictCursor
-from postgres_to_es.decorators import backoff
 from psycopg2.extensions import connection as pg_connection
-from postgres_to_es.pydantic_schemas.schemas import (
-    PersonSchema,
-    PersonFilmWorkSchema,
-    ESFilmWorkSchema, GenreFilmWorkSchema, GenreSchema, FilmWorkSchema,
-)
+from psycopg2.extras import DictCursor
+
+from postgres_to_es.decorators import backoff
 from postgres_to_es.pydantic_schemas.enums import PersonTypeEnum
-from postgres_to_es.services.db_quaries import (
-    query_updated_persons,
-    query_film_works_by_persons,
-    query_film_works_by_ids, query_updated_genres, query_film_works_by_genres,
-    query_updated_film_works,
+from postgres_to_es.pydantic_schemas.schemas import (
+    ESFilmWorkSchema,
+    FilmWorkSchema,
+    GenreFilmWorkSchema,
+    GenreSchema,
+    PersonFilmWorkSchema,
+    PersonSchema,
 )
-from postgres_to_es.settings_parser import pg_data, app_data
+from postgres_to_es.services.db_quaries import (
+    query_film_works_by_genres,
+    query_film_works_by_ids,
+    query_film_works_by_persons,
+    query_updated_film_works,
+    query_updated_genres,
+    query_updated_persons,
+)
+from postgres_to_es.settings_parser import app_data, pg_data
+
+logger = logging.getLogger(__name__)
 
 
-class PostgresCursor:
+class PostgresService:
     def __init__(self, cursor, stater):
         self.cursor = cursor
         self.stater = stater
 
-    def execute(self, query):
+    def query_executor(self, query):
+        """Return result of executed DB query"""
         self.cursor.execute(query)
         return self.cursor.fetchall()
 
-    def get_film_work_ids(self) -> List[str]:
-        """ Return List of Person ids """
-        """ get state """
-        key: str = f"film_work_{app_data.STATE_FIELD}"
-        updated_at: str = self.stater.get_state(key=key)
-        """ get persons """
-        film_works = self.execute(
-            query=query_updated_film_works(datetime_value=updated_at)
-        )
-        if film_works:
-            """ set state """
-            self.stater.set_state(
-                key=key,
-                value=str(film_works[-1].get(app_data.STATE_FIELD))
-            )
-            return [
-                FilmWorkSchema(**film_work).id
-                for film_work in film_works
-            ]
-
-    def get_person_ids(self) -> List[str]:
-        """ Return List of Person ids """
+    def get_person_ids(self) -> tuple:
+        """Return List of Person ids"""
         """ get state """
         key: str = f"person_{app_data.STATE_FIELD}"
         updated_at: str = self.stater.get_state(key=key)
         """ get persons """
-        persons = self.execute(
+        persons = self.query_executor(
             query=query_updated_persons(datetime_value=updated_at)
         )
         if persons:
-            """ set state """
-            self.stater.set_state(
-                key=key,
-                value=str(persons[-1].get(app_data.STATE_FIELD))
+            return (
+                [PersonSchema(**person).id for person in persons],
+                str(persons[-1].get(app_data.STATE_FIELD)),
             )
-            return [
-                PersonSchema(**person).id
-                for person in persons
-            ]
+        return [], None
 
     def get_person_film_work_ids(self, person_ids: List[str]) -> List[str]:
-        """ Return List of Film Work ids """
+        """Return List of Film Work ids"""
         """ get person's film works """
-        person_film_works = self.execute(
+        person_film_works = self.query_executor(
             query=query_film_works_by_persons(person_ids=person_ids)
         )
-        print("person", len(person_film_works))
         return [
             PersonFilmWorkSchema(**person_film_work).id
             for person_film_work in person_film_works
         ]
 
-    def get_genre_ids(self) -> List[str]:
-        """ Return List of Person ids """
+    def get_genre_ids(self) -> tuple:
+        """Return List of Person ids"""
         """ get state """
         key: str = f"genre_{app_data.STATE_FIELD}"
         updated_at: str = self.stater.get_state(key=key)
         """ get genres """
-        genres = self.execute(
+        genres = self.query_executor(
             query=query_updated_genres(datetime_value=updated_at)
         )
         if genres:
-            """ set state """
-            self.stater.set_state(
-                key=key,
-                value=str(genres[-1].get(app_data.STATE_FIELD))
+            return (
+                [GenreSchema(**genre).id for genre in genres],
+                str(genres[-1].get(app_data.STATE_FIELD)),
             )
-            return [
-                GenreSchema(**genre).id
-                for genre in genres
-            ]
+        return [], None
 
     def get_genre_film_work_ids(self, genre_ids: List[str]) -> List[str]:
-        """ Return List of Film Work ids """
+        """Return List of Film Work ids"""
         """ get genre's film works """
-        genre_film_works = self.execute(
+        genre_film_works = self.query_executor(
             query=query_film_works_by_genres(genre_ids=genre_ids)
         )
-        print("genre", len(genre_film_works))
         return [
             GenreFilmWorkSchema(**genre_film_work).id
             for genre_film_work in genre_film_works
         ]
 
-    def get_film_work_instances(self, film_work_ids: List[str]):
-        """ Return Film Work instances to migrate it in ES """
-        film_works = self.execute(
-            query=query_film_works_by_ids(
-                film_work_ids=film_work_ids
+    def get_film_work_ids(self) -> tuple:
+        """Return List of Person ids"""
+        """ get state """
+        key: str = f"film_work_{app_data.STATE_FIELD}"
+        updated_at: str = self.stater.get_state(key=key)
+        """ get persons """
+        film_works = self.query_executor(
+            query=query_updated_film_works(datetime_value=updated_at)
+        )
+        if film_works:
+            return (
+                [FilmWorkSchema(**film_work).id for film_work in film_works],
+                str(film_works[-1].get(app_data.STATE_FIELD)),
             )
+        return [], None
+
+    def get_film_work_instances(self, film_work_ids: tuple):
+        """Return Film Work instances to migrate it in ES"""
+        film_works = self.query_executor(
+            query=query_film_works_by_ids(film_work_ids=film_work_ids)
         )
         """ get unique ids of film works """
-        film_work_ids: set = {
-            film_work.get("fw_id") for film_work in film_works
-        }
-        print("film_works", len(film_works))
-
+        film_work_ids: set = {film_work.get("fw_id") for film_work in film_works}
         transformed_data: list = []
         """ combine duplicates rows """
         for film_work_id in film_work_ids:
@@ -143,51 +134,69 @@ class PostgresCursor:
                     if film_work.get("name") not in genres:
                         genres.append(film_work.get("name"))
                     person_name = film_work.get("full_name")
-                    person_instance = {
-                        "id": film_work.get("id"),
-                        "name": person_name
-                    }
+                    person_instance = {"id": film_work.get("id"), "name": person_name}
                     """ group film work directors, actors, writers """
                     if film_work.get("role") == PersonTypeEnum.director:
-                        """ group director's names """
+                        """group director's names"""
                         if person_name not in directors:
                             directors.append(person_name)
                     elif film_work.get("role") == PersonTypeEnum.actor:
-                        """ group actor's names """
+                        """group actor's names"""
                         if person_name not in actors_names:
                             actors_names.append(person_name)
                         """ group actor's instances """
                         if person_instance not in actors:
                             actors.append(person_instance)
                     elif film_work.get("role") == PersonTypeEnum.writer:
-                        """ group writer's names """
+                        """group writer's names"""
                         if person_name not in writers_names:
                             writers_names.append(person_name)
                         """ group writer's instances """
                         if person_instance not in writers:
                             writers.append(person_instance)
-            new_film_work = {
-                "id": film_work_id,
-                "imdb_rating": imdb_rating,
-                "title": title,
-                "description": description,
-                "genre": genres,
-                "director": directors,
-                "actors_names": actors_names,
-                "writers_names": writers_names,
-                "actors": actors,
-                "writers": writers
-            }
-            transformed_data.append(new_film_work)
+                    new_film_work = {
+                        "id": film_work_id,
+                        "imdb_rating": imdb_rating,
+                        "title": title,
+                        "description": description,
+                        "genre": genres,
+                        "director": directors,
+                        "actors_names": actors_names,
+                        "writers_names": writers_names,
+                        "actors": actors,
+                        "writers": writers,
+                    }
+                    transformed_data.append(new_film_work)
         """ generate new_film_work data """
         for film_work in transformed_data:
             yield ESFilmWorkSchema(**film_work).dict()
 
 
-class PostgresService:
-    """ Class to work with Postgres Database """
+class PostgresCursor:
+    def __init__(self, connection):
+        self._cursor: Optional[DictCursor] = None
+        self._connection = connection
+
+    @property
+    def cursor(self) -> DictCursor:
+        """Check cursor, if closed, recreate DB cursor and return"""
+        if self._cursor and not self._cursor.closed:
+            cur = self._cursor
+        else:
+            cur = self.create_cur()
+        return cur
+
+    @backoff(exceptions=[OperationalError], logger=logger, title="Create cursor")
+    def create_cur(self) -> DictCursor:
+        """Create Postgres cursor"""
+        return self._connection.cursor()
+
+
+class PostgresConnector:
+    """Class to work with Postgres Database"""
+
     def __init__(self, pg_settings=pg_data):
-        self.dsl = {
+        self.dsl: dict = {
             "dbname": pg_settings.DB_NAME,
             "user": pg_settings.DB_USER,
             "password": pg_settings.DB_PASSWORD,
@@ -206,9 +215,7 @@ class PostgresService:
             conn = self.create_conn()
         return conn
 
-    @backoff(exceptions=[OperationalError])
+    @backoff(exceptions=[OperationalError], logger=logger, title="PG connection")
     def create_conn(self) -> pg_connection:
-        """ Create connection with Postgres """
-        return psycopg2.connect(
-            **self.dsl, cursor_factory=DictCursor
-        )
+        """Create connection with Postgres"""
+        return psycopg2.connect(**self.dsl, cursor_factory=DictCursor)

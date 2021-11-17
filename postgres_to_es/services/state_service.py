@@ -1,10 +1,10 @@
 import abc
 import json
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
-from postgres_to_es.settings_parser import app_data
-from datetime import datetime
 
+from postgres_to_es.settings_parser import app_data
 
 json_file_name: str = app_data.STATE_FILE_NAME
 file_path: str = str(Path(__file__).resolve().parent)
@@ -29,18 +29,17 @@ class JsonFileStorage(BaseStorage):
     def save_state(self, state: dict = {}) -> None:
         """Сохранить состояние в постоянное хранилище"""
         file_state = self.retrieve_state()
-        with open(f"{self.file_path}{json_file_name}", 'w', encoding='utf-8') \
-                as storage:
-            save_state = {
-                **file_state,
-                **state
-            }
+        with open(
+            f"{self.file_path}{json_file_name}", "w", encoding="utf-8"
+        ) as storage:
+            save_state = {**file_state, **state}
             json.dump(save_state, storage, ensure_ascii=False, indent=4)
 
     def retrieve_state(self) -> dict:
         """Загрузить состояние локально из постоянного хранилища"""
-        with open(f"{self.file_path}{json_file_name}", 'r', encoding='utf-8') \
-                as storage:
+        with open(
+            f"{self.file_path}{json_file_name}", "r", encoding="utf-8"
+        ) as storage:
             state: dict = json.load(storage)
             return state
 

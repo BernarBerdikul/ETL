@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional
+from typing import Optional
 
 from .mixins import IdMixin, UpdatedMixin
 
@@ -28,11 +28,11 @@ class ESFilmWorkSchema(IdMixin):
     which will migrate into ElasticSearch"""
 
     imdb_rating: Optional[float] = None
-    genre: Optional[List[str]] = None
+    genre: Optional[list[str]] = None
     title: str
     description: Optional[str] = None
-    director: Optional[List[str]] = None
-    actors_names: Optional[List[str]] = None
-    writers_names: Optional[List[str]] = None
-    actors: Optional[List[Dict[str, str]]] = None
-    writers: Optional[List[Dict[str, str]]] = None
+    director: Optional[list[str]] = None
+    actors_names: Optional[list[str]] = None
+    writers_names: Optional[list[str]] = None
+    actors: Optional[list[dict[str, str]]] = None
+    writers: Optional[list[dict[str, str]]] = None

@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, List, Optional
+from typing import Optional
 
 import psycopg2
 from psycopg2 import OperationalError
@@ -55,7 +55,7 @@ class PostgresService:
             )
         return [], None
 
-    def get_person_film_work_ids(self, person_ids: List[str]) -> List[str]:
+    def get_person_film_work_ids(self, person_ids: list[str]) -> list[str]:
         """Return List of Film Work ids"""
         """ get person's film works """
         person_film_works = self.query_executor(
@@ -119,12 +119,12 @@ class PostgresService:
         transformed_data: list = []
         """ combine duplicates rows """
         for film_work_id in film_work_ids:
-            genres: Optional[List[str]] = []
-            directors: Optional[List[str]] = []
-            actors_names: Optional[List[str]] = []
-            writers_names: Optional[List[str]] = []
-            actors: Optional[List[Dict[str, str]]] = []
-            writers: Optional[List[Dict[str, str]]] = []
+            genres: Optional[list[str]] = []
+            directors: Optional[list[str]] = []
+            actors_names: Optional[list[str]] = []
+            writers_names: Optional[list[str]] = []
+            actors: Optional[list[dict[str, str]]] = []
+            writers: Optional[list[dict[str, str]]] = []
             for film_work in film_works:
                 if film_work.get("fw_id") == film_work_id:
                     imdb_rating = film_work.get("rating")

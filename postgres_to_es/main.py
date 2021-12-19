@@ -1,6 +1,5 @@
 import logging
 from time import sleep
-from typing import List
 
 from postgres_to_es.services import (
     ElasticsearchService,
@@ -30,21 +29,21 @@ def load_data(cursor, es_conn, film_work_ids: tuple) -> None:
 def etl_data_migration(pg_cursor, es_conn):
     """Function to migrate data from Postgres to ElasticSearch"""
     """ set DB cursor """
-    person_film_work_ids: List[str] = []
-    genre_film_work_ids: List[str] = []
+    person_film_work_ids: list[str] = []
+    genre_film_work_ids: list[str] = []
     cursor = PostgresService(cursor=pg_cursor, stater=my_state)
 
     """ get film works ids by persons """
     person_ids, person_updated_at = cursor.get_person_ids()
     if person_ids:
-        person_film_work_ids: List[str] = cursor.get_person_film_work_ids(
+        person_film_work_ids: list[str] = cursor.get_person_film_work_ids(
             person_ids=person_ids
         )
 
     """ get film works ids by genres """
     genre_ids, genre_updated_at = cursor.get_genre_ids()
     if genre_ids:
-        genre_film_work_ids: List[str] = cursor.get_genre_film_work_ids(
+        genre_film_work_ids: list[str] = cursor.get_genre_film_work_ids(
             genre_ids=genre_ids
         )
 

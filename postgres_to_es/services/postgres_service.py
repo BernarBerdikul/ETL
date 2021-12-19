@@ -51,7 +51,7 @@ class PostgresService:
         if persons:
             return (
                 [PersonSchema(**person).id for person in persons],
-                str(persons[-1].get(app_data.STATE_FIELD)),
+                f"{persons[-1].get(app_data.STATE_FIELD)}",
             )
         return [], None
 
@@ -78,7 +78,7 @@ class PostgresService:
         if genres:
             return (
                 [GenreSchema(**genre).id for genre in genres],
-                str(genres[-1].get(app_data.STATE_FIELD)),
+                f"{genres[-1].get(app_data.STATE_FIELD)}",
             )
         return [], None
 
@@ -105,7 +105,7 @@ class PostgresService:
         if film_works:
             return (
                 [FilmWorkSchema(**film_work).id for film_work in film_works],
-                str(film_works[-1].get(app_data.STATE_FIELD)),
+                f"{film_works[-1].get(app_data.STATE_FIELD)}",
             )
         return [], None
 

@@ -82,7 +82,7 @@ class PostgresService:
             )
         return [], None
 
-    def get_genre_film_work_ids(self, genre_ids: List[str]) -> List[str]:
+    def get_genre_film_work_ids(self, genre_ids: list[str]) -> list[str]:
         """Return List of Film Work ids"""
         """ get genre's film works """
         genre_film_works = self.query_executor(

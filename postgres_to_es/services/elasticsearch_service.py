@@ -34,4 +34,4 @@ class ElasticsearchService:
                 for action in actions
             ],
         )
-        logger.info(f"Migrate data: {lines}")
+        logger.info(f"Migrate data: {status}")

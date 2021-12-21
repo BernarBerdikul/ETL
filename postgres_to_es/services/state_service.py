@@ -7,7 +7,7 @@ from typing import Any, Optional
 from postgres_to_es.settings_parser import app_data
 
 json_file_name: str = app_data.STATE_FILE_NAME
-default_file_path: str = str(Path(__file__).resolve().parent)
+default_file_path: str = f"{Path(__file__).resolve().parent}"
 
 
 class BaseStorage:
@@ -61,7 +61,7 @@ class State:
 
     def get_state(self, key: str) -> Any:
         """Получить состояние по определённому ключу"""
-        return self.storage.retrieve_state().get(key, datetime.min)
+        return self.storage.retrieve_state().get(key) or datetime.min
 
 
 my_state = State(storage=JsonFileStorage(file_path=default_file_path))
